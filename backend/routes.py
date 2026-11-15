@@ -1,71 +1,57 @@
-from . import app
-import os
 import json
-from flask import jsonify, request, make_response, abort, url_for  # noqa; F401
+from pathlib import Path
+from flask import abort, jsonify, request
+from . import app
 
-SITE_ROOT = os.path.realpath(os.path.dirname(__file__))
-json_url = os.path.join(SITE_ROOT, "data", "pictures.json")
-data: list = json.load(open(json_url))
+data = json.loads((Path(__file__).parent / 'data/pictures.json').read_text())
 
-######################################################################
-# RETURN HEALTH OF THE APP
-######################################################################
+def find_picture(id):
+    return next((picture for picture in data if picture['id'] == id), None)
 
-
-@app.route("/health")
+@app.get('/health')
 def health():
-    return jsonify(dict(status="OK")), 200
+    return jsonify(status='OK')
 
-######################################################################
-# COUNT THE NUMBER OF PICTURES
-######################################################################
-
-
-@app.route("/count")
+@app.get('/count')
 def count():
-    """return length of data"""
-    if data:
-        return jsonify(length=len(data)), 200
+    return jsonify(length=len(data))
 
-    return {"message": "Internal server error"}, 500
-
-
-######################################################################
-# GET ALL PICTURES
-######################################################################
-@app.route("/picture", methods=["GET"])
+@app.get('/picture')
 def get_pictures():
-    pass
+    return jsonify(data)
 
-######################################################################
-# GET A PICTURE
-######################################################################
-
-
-@app.route("/picture/<int:id>", methods=["GET"])
+@app.get('/picture/<int:id>')
 def get_picture_by_id(id):
-    pass
+    picture = find_picture(id)
+    if picture is None:
+        abort(404)
+    return jsonify(picture)
 
-
-######################################################################
-# CREATE A PICTURE
-######################################################################
-@app.route("/picture", methods=["POST"])
+@app.post('/picture')
 def create_picture():
-    pass
+    picture = request.get_json()
+    if not isinstance(picture, dict) or not isinstance(picture.get('id'), int):
+        abort(400)
+    if find_picture(picture['id']) is not None:
+        return jsonify(Message=f"picture with id {picture['id']} already present"), 302
+    data.append(picture)
+    return jsonify(picture), 201
 
-######################################################################
-# UPDATE A PICTURE
-######################################################################
-
-
-@app.route("/picture/<int:id>", methods=["PUT"])
+@app.put('/picture/<int:id>')
 def update_picture(id):
-    pass
+    picture = find_picture(id)
+    if picture is None:
+        abort(404)
+    changes = request.get_json()
+    if not isinstance(changes, dict) or changes.get('id', id) != id:
+        abort(400)
+    picture.update(changes)
+    return jsonify(picture)
 
-######################################################################
-# DELETE A PICTURE
-######################################################################
-@app.route("/picture/<int:id>", methods=["DELETE"])
+@app.delete('/picture/<int:id>')
 def delete_picture(id):
-    pass
+    picture = find_picture(id)
+    if picture is None:
+        abort(404)
+    data.remove(picture)
+    return '', 204

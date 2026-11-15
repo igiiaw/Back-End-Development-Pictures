@@ -113,3 +113,8 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+__pycache__/
+*.pyc
+.pytest_cache/
+db.sqlite3
