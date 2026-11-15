@@ -17,6 +17,8 @@ docker build -t "us.icr.io/$SN_ICR_NAMESPACE/pictures:1" Back-End-Development-Pi
 docker push "us.icr.io/$SN_ICR_NAMESPACE/pictures:1"
 record deploy-getpic-2 'ibmcloud ce app create --name pictures --image us.icr.io/${SN_ICR_NAMESPACE}/pictures:1 --registry-secret icr-secret --port 3000'
 
+unset KUBECONFIG
+oc project "$SN_ICR_NAMESPACE"
 if ! oc get deployment mongo >/dev/null 2>&1; then
     oc new-app --name=mongo --docker-image=docker.io/library/mongo:8.0
     oc set volume deployment/mongo --add --name=mongo-data --type=emptyDir --mount-path=/data/db --overwrite
